@@ -40,7 +40,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     } else if (message.type === 'RUN_STORED') {
         // message: { name }
-        chrome.storage.local.get(['savedTests'], async (result) => {
+        chrome.storage.local.get(['savedTests'], (result) => {
             const saved = result.savedTests || [];
             const item = saved.find(t => t.name === message.name);
             if (!item) {
@@ -48,15 +48,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return;
             }
 
-            // send RUN_CAPTURE to active tab
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs && tabs[0]) {
-                chrome.tabs.sendMessage(tabs[0].id, { type: 'RUN_CAPTURE', data: item.data }, (resp) => {
-                    sendResponse && sendResponse({ ok: true, forwarded: !!resp });
-                });
-            } else {
-                sendResponse && sendResponse({ ok: false, error: 'no active tab' });
-            }
+            // send RUN_CAPTURE to active tab, injecting content script first
+            chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+                if (!tabs || !tabs[0]) {
+                    sendResponse && sendResponse({ ok: false, error: 'no active tab' });
+                    return;
+                }
+                const tabId = tabs[0].id;
+                // Try to inject content script, then forward the run message
+                try {
+                    chrome.scripting.executeScript({ target: { tabId }, files: ['content/content.js'] }).then(() => {
+                        chrome.tabs.sendMessage(tabId, { type: 'RUN_CAPTURE', data: item.data }, (resp) => {
+                            sendResponse && sendResponse({ ok: true, forwarded: !!resp });
+                        });
+                    }).catch(err => {
+                        // Even if injection fails, attempt to send the message
+                        chrome.tabs.sendMessage(tabId, { type: 'RUN_CAPTURE', data: item.data }, (resp) => {
+                            sendResponse && sendResponse({ ok: true, forwarded: !!resp, injectError: String(err) });
+                        });
+                    });
+                } catch (e) {
+                    // fallback: attempt to send the message
+                    chrome.tabs.sendMessage(tabId, { type: 'RUN_CAPTURE', data: item.data }, (resp) => {
+                        sendResponse && sendResponse({ ok: true, forwarded: !!resp, error: String(e) });
+                    });
+                }
+            }).catch(err => {
+                sendResponse && sendResponse({ ok: false, error: String(err) });
+            });
         });
         return true;
     }

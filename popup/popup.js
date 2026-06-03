@@ -73,6 +73,16 @@ async function runCapturedTest() {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    // Ensure content script is injected before sending the replay message
+    try {
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content/content.js']
+        });
+    } catch (e) {
+        console.warn('Could not inject content script (maybe already injected):', e);
+    }
+
     // Instruct content script to replay the captured actions
     chrome.tabs.sendMessage(tab.id, { type: 'RUN_CAPTURE', data: capturedFields }, (resp) => {
         console.log('Run request sent', resp);
@@ -531,10 +541,11 @@ function saveCurrentTest() {
     });
 }
 
-function runStoredTestPrompt() {
+async function runStoredTestPrompt() {
     const name = prompt('Enter the name of the stored test to run:');
     if (!name) return;
 
+    // Request background to run the stored test. Background will ensure forwarding to the active tab.
     chrome.runtime.sendMessage({ type: 'RUN_STORED', name: name }, (resp) => {
         if (resp && resp.ok) {
             captureStatus.textContent = 'Replaying';
