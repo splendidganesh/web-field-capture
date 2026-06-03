@@ -141,30 +141,39 @@ function renderFieldsList() {
     fieldsList.innerHTML = capturedFields.map(field => {
         const isEditableValue = field.action === 'input' || field.action === 'select';
         const valueDisplay = isEditableValue
-            ? `<div class="field-detail"><strong>Value:</strong> <input type="text" class="field-value-input" value="${escapeHtml(field.value)}" onchange="updateFieldValue(${field.fieldId}, this.value)"></div>`
+            ? `<div class="field-detail"><strong>Value:</strong> <input type="text" class="field-value-input" data-field-id="${field.fieldId}" value="${escapeHtml(field.value)}"></div>`
             : field.value !== undefined
                 ? `<div class="field-detail"><strong>Value:</strong> <span class="field-value">${escapeHtml(field.value)}</span></div>`
                 : '';
 
         return `
-        <div class="field-item">
+        <div class="field-item" data-field-id="${field.fieldId}">
             <div class="field-header">
-                <span class="field-type">${field.tagName || field.type}</span>
-                <span class="field-action">${field.action}</span>
+                <span class="field-type">${escapeHtml(field.tagName || field.type)}</span>
+                <span class="field-action">${escapeHtml(field.action)}</span>
             </div>
-            <div class="field-detail"><strong>Element:</strong> ${field.selector}</div>
-            ${field.id ? `<div class="field-detail"><strong>ID:</strong> ${field.id}</div>` : ''}
-            ${field.name ? `<div class="field-detail"><strong>Name:</strong> ${field.name}</div>` : ''}
+            <div class="field-detail"><strong>Element:</strong> ${escapeHtml(field.selector)}</div>
+            ${field.id ? `<div class="field-detail"><strong>ID:</strong> ${escapeHtml(field.id)}</div>` : ''}
+            ${field.name ? `<div class="field-detail"><strong>Name:</strong> ${escapeHtml(field.name)}</div>` : ''}
             ${valueDisplay}
-            ${field.placeholder ? `<div class="field-detail"><strong>Placeholder:</strong> ${field.placeholder}</div>` : ''}
-            <button class="delete-field" onclick="deleteFieldById(${field.fieldId})">×</button>
+            ${field.placeholder ? `<div class="field-detail"><strong>Placeholder:</strong> ${escapeHtml(field.placeholder)}</div>` : ''}
+            <button type="button" class="delete-field" data-field-id="${field.fieldId}">×</button>
         </div>
     `;
     }).join('');
-}
 
-// Make delete function global
-window.deleteFieldById = deleteField;
+    fieldsList.querySelectorAll('.field-value-input').forEach(input => {
+        const id = Number(input.dataset.fieldId);
+        input.addEventListener('change', (event) => {
+            updateFieldValue(id, event.target.value);
+        });
+    });
+
+    fieldsList.querySelectorAll('.delete-field').forEach(button => {
+        const id = Number(button.dataset.fieldId);
+        button.addEventListener('click', () => deleteField(id));
+    });
+}
 
 function updateUI() {
     if (isCapturing) {
@@ -185,7 +194,7 @@ function updateUI() {
 }
 
 function updateField(fieldId, patch) {
-    capturedFields = capturedFields.map(f => f.id === fieldId ? { ...f, ...patch } : f);
+    capturedFields = capturedFields.map(f => f.fieldId === fieldId ? { ...f, ...patch } : f);
     saveCapturedFields();
     renderFieldsList();
     updateUI();
