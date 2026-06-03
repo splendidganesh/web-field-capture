@@ -33,10 +33,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         addCapturedField(message.data);
         sendResponse({ success: true });
     } else if (message.type === 'RUN_COMPLETE') {
-        // Replay finished in content script
+        // Replay finished in content script with result
+        const result = message.result || {};
         captureStatus.textContent = 'Inactive';
         isCapturing = false;
         updateUI();
+        if (result.error) {
+            alert('Test run failed: ' + result.error);
+        } else if (result.success === false) {
+            const failures = (result.details || []).filter(r => !r.success);
+            alert(`Test completed: FAILED (${failures.length} failed steps). Check console for details.`);
+            console.table(result.details || []);
+            console.debug('Run details:', result.details);
+        } else {
+            alert('Test completed: PASS');
+        }
         sendResponse({ ack: true });
     }
 });

@@ -14,13 +14,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ status: 'stopped' });
     } else if (message.type === 'RUN_CAPTURE') {
         // Replay captured actions sent from popup
-        replayCaptured(message.data).then(() => {
-            chrome.runtime.sendMessage({ type: 'RUN_COMPLETE' });
+        // immediate ack
+        sendResponse({ status: 'running' });
+
+        replayCaptured(message.data).then((results) => {
+            const success = results && results.length ? results.every(r => r.success) : true;
+            chrome.runtime.sendMessage({ type: 'RUN_COMPLETE', result: { success, details: results } });
         }).catch(err => {
             console.error('Replay failed', err);
-            chrome.runtime.sendMessage({ type: 'RUN_COMPLETE', error: String(err) });
+            chrome.runtime.sendMessage({ type: 'RUN_COMPLETE', result: { success: false, error: String(err) } });
         });
-        sendResponse({ status: 'running' });
     }
     
     return true;
@@ -136,7 +139,9 @@ function captureElement(element, action, value) {
 async function replayCaptured(fields) {
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    for (const f of fields) {
+    const results = [];
+
+    for (const [index, f] of fields.entries()) {
         try {
             let el = null;
             if (f.selector) {
@@ -147,38 +152,51 @@ async function replayCaptured(fields) {
 
             if (!el) {
                 console.warn('Replay: element not found for', f.selector || f.id || f.name);
+                results.push({ index, action: f.action, selector: f.selector || f.id || f.name, success: false, error: 'element not found' });
                 await sleep(200);
                 continue;
             }
 
             // Perform action
-            switch (f.action) {
-                case 'input':
-                    el.focus();
-                    // set value and dispatch events
-                    el.value = f.value || '';
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    break;
-                case 'select':
-                    el.value = f.value || '';
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    break;
-                case 'click':
-                    el.focus && el.focus();
-                    el.click();
-                    break;
-                default:
-                    // fallback: attempt click
-                    el.click && el.click();
+            let stepSuccess = true;
+            let stepError = null;
+            try {
+                switch (f.action) {
+                    case 'input':
+                        el.focus();
+                        // set value and dispatch events
+                        el.value = f.value || '';
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        break;
+                    case 'select':
+                        el.value = f.value || '';
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        break;
+                    case 'click':
+                        el.focus && el.focus();
+                        el.click();
+                        break;
+                    default:
+                        // fallback: attempt click
+                        el.click && el.click();
+                }
+            } catch (e) {
+                stepSuccess = false;
+                stepError = String(e);
             }
+
+            results.push({ index, action: f.action, selector: f.selector || f.id || f.name, success: stepSuccess, error: stepError });
 
             // small delay between actions
             await sleep(500);
         } catch (e) {
             console.error('Error replaying action', e);
+            results.push({ index, action: f.action, selector: f.selector || f.id || f.name, success: false, error: String(e) });
         }
     }
+
+    return results;
 }
 
 // Scan the page for interactive fields and capture them automatically
