@@ -138,22 +138,29 @@ function renderFieldsList() {
         return;
     }
 
-    fieldsList.innerHTML = capturedFields.map(field => `
+    fieldsList.innerHTML = capturedFields.map(field => {
+        const isEditableValue = field.action === 'input' || field.action === 'select';
+        const valueDisplay = isEditableValue
+            ? `<div class="field-detail"><strong>Value:</strong> <input type="text" class="field-value-input" value="${escapeHtml(field.value)}" onchange="updateFieldValue(${field.id}, this.value)"></div>`
+            : field.value !== undefined
+                ? `<div class="field-detail"><strong>Value:</strong> <span class="field-value">${escapeHtml(field.value)}</span></div>`
+                : '';
+
+        return `
         <div class="field-item">
             <div class="field-header">
                 <span class="field-type">${field.tagName || field.type}</span>
                 <span class="field-action">${field.action}</span>
             </div>
-            <div class="field-detail">
-                <strong>Element:</strong> ${field.selector}
-            </div>
+            <div class="field-detail"><strong>Element:</strong> ${field.selector}</div>
             ${field.id ? `<div class="field-detail"><strong>ID:</strong> ${field.id}</div>` : ''}
             ${field.name ? `<div class="field-detail"><strong>Name:</strong> ${field.name}</div>` : ''}
-            ${field.value !== undefined ? `<div class="field-detail"><strong>Value:</strong> <span class="field-value">${escapeHtml(field.value)}</span></div>` : ''}
+            ${valueDisplay}
             ${field.placeholder ? `<div class="field-detail"><strong>Placeholder:</strong> ${field.placeholder}</div>` : ''}
             <button class="delete-field" onclick="deleteFieldById(${field.id})">×</button>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Make delete function global
@@ -175,6 +182,17 @@ function updateUI() {
     }
     
     fieldCount.textContent = `${capturedFields.length} field${capturedFields.length !== 1 ? 's' : ''} captured`;
+}
+
+function updateField(fieldId, patch) {
+    capturedFields = capturedFields.map(f => f.id === fieldId ? { ...f, ...patch } : f);
+    saveCapturedFields();
+    renderFieldsList();
+    updateUI();
+}
+
+function updateFieldValue(fieldId, value) {
+    updateField(fieldId, { value });
 }
 
 function saveCapturedFields() {
