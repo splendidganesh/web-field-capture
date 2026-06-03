@@ -10,6 +10,8 @@ const fieldCount = document.getElementById('fieldCount');
 const fieldsList = document.getElementById('fieldsList');
 const exportBtn = document.getElementById('exportBtn');
 const runBtn = document.getElementById('runBtn');
+const saveBtn = document.getElementById('saveBtn');
+const runStoredBtn = document.getElementById('runStoredBtn');
 const testCaseNameInput = document.getElementById('testName');
 const exportFormatSelect = document.getElementById('exportFormat');
 
@@ -22,6 +24,8 @@ stopCaptureBtn.addEventListener('click', stopCapture);
 clearCaptureBtn.addEventListener('click', clearCapture);
 exportBtn.addEventListener('click', exportTestCase);
 runBtn && runBtn.addEventListener('click', runCapturedTest);
+saveBtn && saveBtn.addEventListener('click', saveCurrentTest);
+runStoredBtn && runStoredBtn.addEventListener('click', runStoredTestPrompt);
 
 // Listen for captured fields from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -510,4 +514,32 @@ function convertToJavaSelector(selector) {
 function escapeString(str) {
     if (!str) return '';
     return String(str).replace(/"/g, '\\"').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+}
+
+function saveCurrentTest() {
+    if (capturedFields.length === 0) {
+        alert('No captured fields to save');
+        return;
+    }
+
+    const name = prompt('Enter a name for this test case:');
+    if (!name) return;
+
+    chrome.runtime.sendMessage({ type: 'STORE_TEST', name: name, data: capturedFields }, (resp) => {
+        if (resp && resp.ok) alert('Test saved: ' + name);
+        else alert('Failed to save test');
+    });
+}
+
+function runStoredTestPrompt() {
+    const name = prompt('Enter the name of the stored test to run:');
+    if (!name) return;
+
+    chrome.runtime.sendMessage({ type: 'RUN_STORED', name: name }, (resp) => {
+        if (resp && resp.ok) {
+            captureStatus.textContent = 'Replaying';
+        } else {
+            alert('Failed to run stored test: ' + (resp && resp.error));
+        }
+    });
 }
