@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Icons</title>
+</head>
+<body>
+    <h2>Right-click each canvas below and "Save image as..."</h2>
+    <div>
+        <p>Save as: icon16.png</p>
+        <canvas id="c16" width="16" height="16" style="border:1px solid black; image-rendering: pixelated; width: 160px; height: 160px;"></canvas>
+    </div>
+    <div>
+        <p>Save as: icon48.png</p>
+        <canvas id="c48" width="48" height="48" style="border:1px solid black; width: 240px; height: 240px;"></canvas>
+    </div>
+    <div>
+        <p>Save as: icon128.png</p>
+        <canvas id="c128" width="128" height="128" style="border:1px solid black; width: 256px; height: 256px;"></canvas>
+    </div>
+
+    <script>
+        function drawIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // White text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.4}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('FC', size / 2, size / 2);
+        }
+
+        drawIcon('c16', 16);
+        drawIcon('c48', 48);
+        drawIcon('c128', 128);
+    </script>
+</body>
+</html>

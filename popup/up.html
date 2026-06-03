@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Capture Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 400px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .controls {
+            padding: 15px;
+            background: white;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #45a049;
+        }
+
+        .btn-stop {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #da190b;
+        }
+
+        .btn-clear {
+            background: #757575;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px 15px;
+            background: #e3f2fd;
+            text-align: center;
+            font-size: 13px;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .status.active {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .fields-container {
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .field-item {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .field-type {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .field-detail {
+            margin: 3px 0;
+            color: #555;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+            font-size: 13px;
+        }
+
+        .export-section {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+
+        .export-section input,
+        .export-section select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .btn-export {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Field Capture Tool</h1>
+        <p>Record interactions for test automation</p>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn" class="btn btn-start">▶ Start Capture</button>
+        <button id="stopBtn" class="btn btn-stop" disabled>⏹ Stop Capture</button>
+        <button id="clearBtn" class="btn btn-clear">🗑 Clear All</button>
+    </div>
+
+    <div id="status" class="status">
+        Click "Start Capture" to begin
+    </div>
+    <div id="fieldCount" class="status" style="margin: 10px 15px 0; font-size: 12px; color: #555; background: none; border: none; text-align: left;">
+        0 fields captured
+    </div>
+
+    <div class="fields-container">
+        <div id="fieldsList">
+            <div class="empty-state">No fields captured yet</div>
+        </div>
+    </div>
+
+    <div class="export-section">
+        <input type="text" id="testName" placeholder="Test Case Name">
+        <select id="exportFormat">
+            <option value="selenium-python">Selenium (Python)</option>
+            <option value="playwright">Playwright (JavaScript)</option>
+            <option value="json">JSON</option>
+        </select>
+        <button id="exportBtn" class="btn btn-export">📥 Export Test Case</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

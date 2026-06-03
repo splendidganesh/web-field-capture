@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="canvas16" width="16" height="16"></canvas>
+<canvas id="canvas48" width="48" height="48"></canvas>
+<canvas id="canvas128" width="128" height="128"></canvas>
+
+<script>
+function createIcon(canvasId, size) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  
+  // Background
+  ctx.fillStyle = '#667eea';
+  ctx.fillRect(0, 0, size, size);
+  
+  // Text
+  ctx.fillStyle = 'white';
+  ctx.font = `bold ${size/2}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('FC', size/2, size/2);
+}
+
+createIcon('canvas16', 16);
+createIcon('canvas48', 48);
+createIcon('canvas128', 128);
+
+// Right-click each canvas and "Save image as"
+</script>
+</body>
+</html>
