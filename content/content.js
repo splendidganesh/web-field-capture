@@ -31,6 +31,14 @@ function startCapture() {
     document.addEventListener('input', handleInput, true);
     document.addEventListener('mouseover', handleHover, true);
     document.addEventListener('mouseout', handleOut, true);
+
+    // Also perform an initial scan and capture of all interactive elements on the page
+    // This enables "open URL and auto-capture all fields/buttons" behavior
+    try {
+        scanAndCaptureAll();
+    } catch (e) {
+        console.error('Auto-scan capture failed:', e);
+    }
 }
 
 function stopCapture() {
@@ -113,6 +121,44 @@ function captureElement(element, action, value) {
     chrome.runtime.sendMessage({
         type: 'FIELD_CAPTURED',
         data: data
+    });
+}
+
+// Scan the page for interactive fields and capture them automatically
+function scanAndCaptureAll() {
+    const selectors = 'input, textarea, select, button, a';
+    const nodes = Array.from(document.querySelectorAll(selectors));
+
+    nodes.forEach(el => {
+        // Ignore script/style or hidden elements
+        try {
+            const style = window.getComputedStyle(el);
+            if (style && (style.display === 'none' || style.visibility === 'hidden' || el.offsetParent === null)) return;
+        } catch (e) {
+            // ignore
+        }
+
+        const tag = el.tagName.toLowerCase();
+
+        if (tag === 'input') {
+            const t = (el.type || '').toLowerCase();
+            // capture text-like inputs only
+            const textTypes = ['text','email','password','search','tel','url','number'];
+            if (textTypes.includes(t) || t === '' ) {
+                captureElement(el, 'input', el.value || '');
+            } else if (t === 'checkbox' || t === 'radio') {
+                captureElement(el, 'input', el.checked);
+            } else {
+                // for other input types (button/file etc) capture as click
+                captureElement(el, 'click');
+            }
+        } else if (tag === 'textarea') {
+            captureElement(el, 'input', el.value || '');
+        } else if (tag === 'select') {
+            captureElement(el, 'select', el.value || '');
+        } else if (tag === 'button' || (tag === 'a' && el.hasAttribute('href'))) {
+            captureElement(el, 'click');
+        }
     });
 }
 
