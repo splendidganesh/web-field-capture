@@ -114,7 +114,7 @@ function clearCapture() {
 
 function addCapturedField(fieldData) {
     const field = {
-        id: Date.now(),
+        fieldId: Date.now(),
         timestamp: new Date().toISOString(),
         ...fieldData
     };
@@ -126,7 +126,7 @@ function addCapturedField(fieldData) {
 }
 
 function deleteField(fieldId) {
-    capturedFields = capturedFields.filter(f => f.id !== fieldId);
+    capturedFields = capturedFields.filter(f => f.fieldId !== fieldId);
     saveCapturedFields();
     renderFieldsList();
     updateUI();
@@ -141,7 +141,7 @@ function renderFieldsList() {
     fieldsList.innerHTML = capturedFields.map(field => {
         const isEditableValue = field.action === 'input' || field.action === 'select';
         const valueDisplay = isEditableValue
-            ? `<div class="field-detail"><strong>Value:</strong> <input type="text" class="field-value-input" value="${escapeHtml(field.value)}" onchange="updateFieldValue(${field.id}, this.value)"></div>`
+            ? `<div class="field-detail"><strong>Value:</strong> <input type="text" class="field-value-input" value="${escapeHtml(field.value)}" onchange="updateFieldValue(${field.fieldId}, this.value)"></div>`
             : field.value !== undefined
                 ? `<div class="field-detail"><strong>Value:</strong> <span class="field-value">${escapeHtml(field.value)}</span></div>`
                 : '';
@@ -157,7 +157,7 @@ function renderFieldsList() {
             ${field.name ? `<div class="field-detail"><strong>Name:</strong> ${field.name}</div>` : ''}
             ${valueDisplay}
             ${field.placeholder ? `<div class="field-detail"><strong>Placeholder:</strong> ${field.placeholder}</div>` : ''}
-            <button class="delete-field" onclick="deleteFieldById(${field.id})">×</button>
+            <button class="delete-field" onclick="deleteFieldById(${field.fieldId})">×</button>
         </div>
     `;
     }).join('');
