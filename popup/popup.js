@@ -9,6 +9,7 @@ const captureStatus = document.getElementById('status');
 const fieldCount = document.getElementById('fieldCount');
 const fieldsList = document.getElementById('fieldsList');
 const exportBtn = document.getElementById('exportBtn');
+const runBtn = document.getElementById('runBtn');
 const testCaseNameInput = document.getElementById('testName');
 const exportFormatSelect = document.getElementById('exportFormat');
 
@@ -20,12 +21,19 @@ startCaptureBtn.addEventListener('click', startCapture);
 stopCaptureBtn.addEventListener('click', stopCapture);
 clearCaptureBtn.addEventListener('click', clearCapture);
 exportBtn.addEventListener('click', exportTestCase);
+runBtn && runBtn.addEventListener('click', runCapturedTest);
 
 // Listen for captured fields from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'FIELD_CAPTURED') {
         addCapturedField(message.data);
         sendResponse({ success: true });
+    } else if (message.type === 'RUN_COMPLETE') {
+        // Replay finished in content script
+        captureStatus.textContent = 'Inactive';
+        isCapturing = false;
+        updateUI();
+        sendResponse({ ack: true });
     }
 });
 
@@ -51,6 +59,23 @@ async function stopCapture() {
     
     isCapturing = false;
     updateUI();
+}
+
+async function runCapturedTest() {
+    if (capturedFields.length === 0) {
+        alert('No captured fields to run');
+        return;
+    }
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Instruct content script to replay the captured actions
+    chrome.tabs.sendMessage(tab.id, { type: 'RUN_CAPTURE', data: capturedFields }, (resp) => {
+        console.log('Run request sent', resp);
+    });
+
+    // Update UI to show running
+    captureStatus.textContent = 'Replaying';
 }
 
 function clearCapture() {

@@ -12,6 +12,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.type === 'STOP_CAPTURE') {
         stopCapture();
         sendResponse({ status: 'stopped' });
+    } else if (message.type === 'RUN_CAPTURE') {
+        // Replay captured actions sent from popup
+        replayCaptured(message.data).then(() => {
+            chrome.runtime.sendMessage({ type: 'RUN_COMPLETE' });
+        }).catch(err => {
+            console.error('Replay failed', err);
+            chrome.runtime.sendMessage({ type: 'RUN_COMPLETE', error: String(err) });
+        });
+        sendResponse({ status: 'running' });
     }
     
     return true;
@@ -122,6 +131,54 @@ function captureElement(element, action, value) {
         type: 'FIELD_CAPTURED',
         data: data
     });
+}
+
+async function replayCaptured(fields) {
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    for (const f of fields) {
+        try {
+            let el = null;
+            if (f.selector) {
+                try { el = document.querySelector(f.selector); } catch (_) { el = null; }
+            }
+            if (!el && f.id) el = document.getElementById(f.id);
+            if (!el && f.name) el = document.querySelector(`[name="${f.name}"]`);
+
+            if (!el) {
+                console.warn('Replay: element not found for', f.selector || f.id || f.name);
+                await sleep(200);
+                continue;
+            }
+
+            // Perform action
+            switch (f.action) {
+                case 'input':
+                    el.focus();
+                    // set value and dispatch events
+                    el.value = f.value || '';
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    break;
+                case 'select':
+                    el.value = f.value || '';
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    break;
+                case 'click':
+                    el.focus && el.focus();
+                    el.click();
+                    break;
+                default:
+                    // fallback: attempt click
+                    el.click && el.click();
+            }
+
+            // small delay between actions
+            await sleep(500);
+        } catch (e) {
+            console.error('Error replaying action', e);
+        }
+    }
 }
 
 // Scan the page for interactive fields and capture them automatically
